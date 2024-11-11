@@ -19,8 +19,7 @@ class FullCamera extends StatefulWidget {
 }
 
 class _FullCameraState extends State<FullCamera> with SingleTickerProviderStateMixin {
-  late CameraController _controller;
-  MobileScannerController cameraController = MobileScannerController();
+  late MobileScannerController cameraController;
   bool isFlashOn = false;
   bool hasScanned = false;
   bool isScanning = false;
@@ -31,7 +30,7 @@ class _FullCameraState extends State<FullCamera> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    cameraController = MobileScannerController();
 
     _animationController = AnimationController(
       duration: const Duration(seconds: 2),
@@ -51,21 +50,8 @@ class _FullCameraState extends State<FullCamera> with SingleTickerProviderStateM
     });
   }
 
-  Future<void> _initializeCamera() async {
-    try {
-      _controller = CameraController(
-        widget.camera,
-        ResolutionPreset.medium,
-      );
-      await _controller.initialize();
-    } catch (e) {
-      print('Error initializing camera: $e');
-    }
-  }
-
   @override
   void dispose() {
-    _controller.dispose();
     cameraController.dispose();
     _animationController.dispose();
     super.dispose();
@@ -78,18 +64,20 @@ class _FullCameraState extends State<FullCamera> with SingleTickerProviderStateM
     });
   }
 
-  void _handleScan() {
-    setState(() {
-      hasScanned = true;
-      isScanning = false;
-    });
-    _animationController.stop();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        widget.onScanSuccess("Scanned Data");
-        widget.onClose(); // Close the camera after scanning
-      }
-    });
+  void _handleScan(String scannedData) {
+    if (!hasScanned) {
+      setState(() {
+        hasScanned = true;
+        isScanning = false;
+      });
+      _animationController.stop();
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          widget.onScanSuccess(scannedData);
+          widget.onClose(); 
+        }
+      });
+    }
   }
 
   @override
@@ -112,10 +100,8 @@ class _FullCameraState extends State<FullCamera> with SingleTickerProviderStateM
                 onDetect: (capture) {
                   final List<Barcode> barcodes = capture.barcodes;
                   for (final barcode in barcodes) {
-                    if (!hasScanned) {
-                      print('Scanned data: ${barcode.rawValue}');
-                      _handleScan();
-                    }
+                    print('Scanned data: ${barcode.rawValue}');
+                    _handleScan(barcode.rawValue!); 
                   }
                 },
               ),
@@ -124,7 +110,6 @@ class _FullCameraState extends State<FullCamera> with SingleTickerProviderStateM
                   width: 250,
                   height: 250,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Stack(

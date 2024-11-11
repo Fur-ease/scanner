@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:scanner/fullcamera.dart';
+//import 'package:scanner/fullcamera.dart';
 import 'package:scanner/home.dart';
 //import 'package:qrscanner/splash.dart';
 
@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
       routes: {
 //        "/": (context) => const Splash(),
         "/": (context) => Home(camera: cameras.first),
-         "/fullcamera": (context) =>  FullCamera(camera: cameras.first, onClose: () {  }, onScanSuccess: (scannedData) {  },),
+        // "/fullcamera": (context) =>  FullCamera(camera: cameras.first, onClose: () {  }, onScanSuccess: (scannedData) {  },),
         // "/register":(context) => const Register(),
         // "/forgotpassword":(context) => ForgotPassword(),
       },

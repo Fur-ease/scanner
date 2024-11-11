@@ -1,7 +1,10 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:scanner/billing.dart';
 import 'package:scanner/fullcamera.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class Home extends StatefulWidget {
   final CameraDescription camera;
@@ -18,7 +21,8 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   late Future<void> _initializeControllerFuture;
   bool _isFullCameraVisible = false;
 
-  final List<String> _tabs = ['overview', 'car details', 'payment details'];
+  final List<String> _tabs = ['overview','payment details'];
+  final List<String> _scannedDataList = [];
 
   @override
   void initState() {
@@ -48,12 +52,24 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     });
 
     if (_isFullCameraVisible) {
-      // Stop the camera when FullCamera is shown
       _controller.dispose();
     } else {
-      // Reinitialize the camera when FullCamera is closed
       _initializeCamera();
     }
+  }
+
+  void _showTopSnackBar(BuildContext context) {
+    showTopSnackBar(
+      Overlay.of(context),
+      const CustomSnackBar.info(
+        message: "You have scanned all required codes",
+        backgroundColor: Colors.red,
+        icon: Icon(
+          Icons.info,
+          size: 40,
+        ),
+      ),
+    );
   }
 
   @override
@@ -68,12 +84,12 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 _buildNormalContent(),
                 if (_isFullCameraVisible)
                   DraggableScrollableSheet(
-                    initialChildSize: 1, // Adjust the initial size
-                    minChildSize: 0.3, // Minimum size when collapsed
-                    maxChildSize: 1.0, // Maximum size when expanded
+                    initialChildSize: 1, 
+                    minChildSize: 0.3, 
+                    maxChildSize: 1.0,
                     builder: (BuildContext context, ScrollController scrollController) {
                       return Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                         ),
@@ -83,12 +99,27 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                             _toggleFullCamera();
                           },
                           onScanSuccess: (scannedData) {
-                            // Handle scanned data
+                            setState(() {
+                              _scannedDataList.add(scannedData);
+                            });
+                            
                             print("Scanned data in: $scannedData");
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Scanned: $scannedData')),
-                            );
-                            _toggleFullCamera(); // Close the camera after scanning
+                            // showTopSnackBar(
+                            //     Overlay.of(context),
+                            //     CustomSnackBar.success(
+                            //       message:
+                            //           "Scanned: $scannedData",
+                            //     ),
+                            //     persistent: true,
+                            // );
+                            // ScaffoldMessenger.of(context).showSnackBar(
+                            //   SnackBar(
+                            //     content: Text(
+                            //       'Scanned: $scannedData',
+                            //       ),
+                            //   ),
+                            // );
+                            //_toggleFullCamera(); 
                           },
                         ),
                       );
@@ -121,18 +152,21 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 },
                 child: const Icon(
                   Icons.exit_to_app,
-                  color: Colors.black,
+                  color: Colors.white,
                 ),
               ),
               const Text(
                 "scan",
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontSize: 25,
                 ),
               ),
               PopupMenuButton(
-                color: Colors.white,
+                icon: const Icon(
+                  Icons.more_vert, 
+                color: Colors.white, 
+                ),
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                     value: 0,
@@ -173,24 +207,43 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 SafeArea(
                   child: Column(
                     children: [
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 30),
                       Expanded(
                         child: Center(
-                          child: GestureDetector(
-                            onTap: _toggleFullCamera,
-                            child: Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.withOpacity(0.3),
-                                shape: BoxShape.circle,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: (_scannedDataList.length > 2)  ? () {
+                                  _showTopSnackBar(context as BuildContext); 
+                                    } 
+                                      : _toggleFullCamera,
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    color: (_scannedDataList.length > 2)
+                                      ? Colors.grey.withOpacity(0.1)
+                                      : Colors.grey.withOpacity(0.4),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 40,
+                                  ),
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 40,
+                              const SizedBox(height: 8), 
+                              const Text(
+                                'Scan with your camera',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20, 
+                                  fontWeight: FontWeight.bold, 
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
                       ),
@@ -229,11 +282,82 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         SliverList(
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return ListTile(
-                title: Text('index: $index ,0'),
-              );
+               List<String> titles = ['CLI', 'Car Details', 'Personal Details'];
+              if (index < _scannedDataList.length) {
+                return Container(
+                  margin: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(16),
+                  height: 300,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.orange),
+                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        blurStyle: BlurStyle.outer,
+                        blurRadius: 2,
+                        offset: const Offset(0, 0),
+                        color: Colors.grey.withOpacity(0.6),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            titles[index],
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 10), 
+                          Text(
+                            _scannedDataList[index],
+                            style: const TextStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10,),
+                      Positioned(
+                        bottom: 5,
+                        right: 5,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.amber,
+                          ),
+                          onPressed: (_scannedDataList.length > 2 && index < 2) ? null : () {
+                            if (_scannedDataList.length > 2) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => Billing(scannedData: _scannedDataList,)), 
+                              );
+                            } else {
+                              setState(() {
+                                _toggleFullCamera();
+                              });
+                            }
+                          }, 
+                          child: const Text(
+                            "Continue",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                return Container();
+              }
             },
-            childCount: 20,
+            childCount: _scannedDataList.length, 
           ),
         ),
       ],
