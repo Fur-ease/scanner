@@ -1,7 +1,10 @@
+import 'dart:io'; 
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lottie/lottie.dart';
+//import 'package:lottie/lottie.dart';
+import 'package:scanner/home.dart';
+import 'package:scanner/main.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -17,7 +20,7 @@ class Checkout extends StatefulWidget {
 
 class _CheckoutState extends State<Checkout> {
   final ImagePicker _picker = ImagePicker();
-  XFile? _image; // To store the selected image
+  final File?  _image = null; 
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +33,7 @@ class _CheckoutState extends State<Checkout> {
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {
+                List<String> titles = [ 'Client details'];
                 return Container(
                   margin: const EdgeInsets.all(10),
                   padding: const EdgeInsets.all(16),
@@ -49,9 +53,9 @@ class _CheckoutState extends State<Checkout> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Scanned Data',
-                        style: TextStyle(
+                      Text(
+                        titles[index],
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
@@ -110,7 +114,7 @@ class _CheckoutState extends State<Checkout> {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    "Upload Document or Picture",
+                    "Upload Picture",
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -119,8 +123,20 @@ class _CheckoutState extends State<Checkout> {
                   ),
                   const SizedBox(height: 10),
                   ElevatedButton(
-                    onPressed: _showImageSourceDialog,
-                    child: const Text('Choose Image'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber.withOpacity(0.8),
+                    ),
+                    onPressed: () async {
+                      await _picker.pickImage(source: ImageSource.camera);
+                      if (_image != null) {
+                        setState(() {});
+                      }
+                      Navigator.of(context).pop();
+                    },
+                    //_showImageSourceDialog,
+                    child: const Text(
+                      'Take Picture',
+                      ),
                   ),
                   const SizedBox(height: 10),
                   if (_image != null)
@@ -134,7 +150,7 @@ class _CheckoutState extends State<Checkout> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Image.file(
-                          File(_image!.path),
+                          File(_image.path),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -145,25 +161,37 @@ class _CheckoutState extends State<Checkout> {
           ),
           SliverToBoxAdapter(
             child: Container(
-              margin: const EdgeInsets.all( 10),
+              margin: const EdgeInsets.all(10),
               padding: const EdgeInsets.all(16),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: Colors.amber.withOpacity(0.9),
                   alignment: Alignment.center,
                 ),
                 onPressed: () {
-                  // Handle checkout action
-                  // You can add your checkout logic here
-                  //print('Checkout button pressed');
-                  showTopSnackBar(
-                    Overlay.of(context),
-                    const CustomSnackBar.success(
-                      message: "Checkout successful!",
-                      backgroundColor: Colors.green,
-                      icon: Icon(Icons.check, size: 50),
-                    ),
-                  );
+                  if (_image != null) {
+                    showTopSnackBar(
+                      Overlay.of(context),
+                       CustomSnackBar.error(
+                        message: "Please insert document or picture",
+                        backgroundColor: Colors.red,
+                        icon: Lottie.asset("assets/error.json"),
+                        //icon: Icon(Icons.check, size: 50),
+                      ),
+                    );
+                  }
+                  else{
+                      showTopSnackBar(
+                      Overlay.of(context),
+                       CustomSnackBar.success(
+                        message: "Checkout successful!",
+                        backgroundColor: Colors.green,
+                        icon: Lottie.asset("assets/success.json"),
+                        //icon: Icon(Icons.check, size: 50),
+                      ),
+                    );
+                    Navigator.pushNamed(context, MaterialPageRoute(builder: (context) => Home(camera: cameras.first,)) as String);
+                  }
                 },
                 child: const Text(
                   'Confirm Checkout',
@@ -180,32 +208,36 @@ class _CheckoutState extends State<Checkout> {
     );
   }
 
-  void _showImageSourceDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Select Image Source'),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                _image = await _picker.pickImage(source: ImageSource.camera);
-                setState(() {});
-                //Navigator.of(context).pop();
-              },
-              child: const Text('Camera'),
-            ),
-            TextButton(
-              onPressed: () async {
-                _image = await _picker.pickImage(source: ImageSource.gallery);
-                setState(() {});
-                Navigator.of(context).pop();
-              },
-              child: const Text('Gallery'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
+//   void _showImageSourceDialog() {
+//     showDialog(
+//       context: context,
+//       builder: (BuildContext context) {
+//         return AlertDialog(
+//           title: const Text('Select Image Source'),
+//           actions: [
+//             TextButton(
+//               onPressed: () async {
+//                 await _picker.pickImage(source: ImageSource.camera);
+//                 if (_image != null) {
+//                   setState(() {});
+//                 }
+//                 Navigator.of(context).pop();
+//               },
+//               child: const Text('Camera'),
+//             ),
+//             // TextButton(
+//             //   onPressed: () async {
+//             //     _image = await _picker.pickImage(source: ImageSource.gallery);
+//             //     if (_image != null) {
+//             //       setState(() {});
+//             //     }
+//             //     Navigator.of(context).pop();
+//             //   },
+//             //   child: const Text('Gallery'),
+//             // ),
+//           ],
+//         );
+//       },
+//     );
+//   }
+ }

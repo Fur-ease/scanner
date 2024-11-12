@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
 //        "/": (context) => const Splash(),
         "/": (context) => Home(camera: cameras.first),
         // "/fullcamera": (context) =>  FullCamera(camera: cameras.first, onClose: () {  }, onScanSuccess: (scannedData) {  },),
-        // "/register":(context) => const Register(),
+        // "/billing":(context) => const Billing(scannedData: [],),
         // "/forgotpassword":(context) => ForgotPassword(),
       },
     );

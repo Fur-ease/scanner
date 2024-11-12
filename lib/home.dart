@@ -20,9 +20,19 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   bool _isFullCameraVisible = false;
+  bool isReplacing = false;
+   late String currentTab = _tabs[_tabController.index];
+  // final List<String>? _scannedDataList = scannedDataMap[currentTab];
+  final List<String> _tabs = ['CCL','Car details','Driver details','Client details'];
+  final Map<String, List<String>> scannedDataMap = {
+    'CCL':[],
+    'Car details':[],
+    'Driver details':[],
+    'Client details':[],
+  };
 
-  final List<String> _tabs = ['overview','payment details'];
-  final List<String> _scannedDataList = [];
+  int scanCount = 0;
+  //final List<String> _scannedDataList = [];
 
   @override
   void initState() {
@@ -30,6 +40,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     _initializeCamera();
     _tabController = TabController(length: _tabs.length, vsync: this);
   }
+
 
   Future<void> _initializeCamera() async {
     _controller = CameraController(
@@ -54,6 +65,11 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     if (_isFullCameraVisible) {
       _controller.dispose();
     } else {
+      if(isReplacing){
+        String currentTab =_tabs[_tabController.index];
+        scannedDataMap[currentTab]!.clear();
+        scanCount = _tabs.indexOf(currentTab);
+      }
       _initializeCamera();
     }
   }
@@ -74,63 +90,96 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: FutureBuilder<void>(
-        future: _initializeControllerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return Stack(
-              children: [
-                _buildNormalContent(),
-                if (_isFullCameraVisible)
-                  DraggableScrollableSheet(
-                    initialChildSize: 1, 
-                    minChildSize: 0.3, 
-                    maxChildSize: 1.0,
-                    builder: (BuildContext context, ScrollController scrollController) {
-                      return Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                        child: FullCamera(
-                          camera: widget.camera,
-                          onClose: () {
-                            _toggleFullCamera();
-                          },
-                          onScanSuccess: (scannedData) {
-                            setState(() {
-                              _scannedDataList.add(scannedData);
-                            });
-                            
-                            print("Scanned data in: $scannedData");
-                            // showTopSnackBar(
-                            //     Overlay.of(context),
-                            //     CustomSnackBar.success(
-                            //       message:
-                            //           "Scanned: $scannedData",
-                            //     ),
-                            //     persistent: true,
-                            // );
-                            // ScaffoldMessenger.of(context).showSnackBar(
-                            //   SnackBar(
-                            //     content: Text(
-                            //       'Scanned: $scannedData',
-                            //       ),
-                            //   ),
-                            // );
-                            //_toggleFullCamera(); 
-                          },
-                        ),
-                      );
-                    },
-                  ),
-              ],
-            );
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
-        },
+    return WillPopScope(
+      onWillPop: () async {
+        if (_tabController.index > 0) {
+          setState(() {
+            _tabController.index = _tabController.index - 1;
+          });
+          return false; 
+        }
+        return true; 
+      },
+      child: Scaffold(
+        body: FutureBuilder<void>(
+          future: _initializeControllerFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              return Stack(
+                children: [
+                  _buildNormalContent(),
+                  if (_isFullCameraVisible)
+                    DraggableScrollableSheet(
+                      initialChildSize: 1, 
+                      minChildSize: 0.3, 
+                      maxChildSize: 1.0,
+                      builder: (BuildContext context, ScrollController scrollController) {
+                        return Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          child: FullCamera(
+                            camera: widget.camera,
+                            onClose: () {
+                              _toggleFullCamera();
+                            },
+                            onScanSuccess: (scannedData) {
+                              setState(() {
+                                String currentTab = _tabs[_tabController.index];
+                                if (isReplacing){
+                                  scannedDataMap[currentTab]!.clear();
+                                  scannedDataMap[currentTab]!.add(scannedData);
+                                  isReplacing = false;
+                                } else {
+                                  if (_tabController.index == 0) {
+                                    scannedDataMap[currentTab]!.add(scannedData);
+                                  } else {
+                                    //int nextTabIndex = (_tabController.index ) % _tabs.length;
+                                   // String nextTab = _tabs[nextTabIndex];
+                                    scannedDataMap[currentTab]!.add(scannedData) ;
+                                    
+                                    //_tabController.animateTo(nextTabIndex);
+                                  }
+                                }
+                                // if (_tabController.index < _tabs.length - 1) {
+                                //   int nextTabIndex = (_tabController.index + 1) % _tabs.length;
+                                //   _tabController.animateTo(nextTabIndex);
+                                // }
+                                //scannedDataMap[currentTab]?.add(scannedData);
+                                //scanCount++;
+                                //_scannedDataList.add(scannedData);
+                              });
+                              
+                              print("Scanned data in: $scannedData");
+                              // showTopSnackBar(
+                              //     Overlay.of(context),
+                              //     CustomSnackBar.success(
+                              //       message:
+                              //           "Scanned: $scannedData",
+                              //     ),
+                              //     persistent: true,
+                              // );
+                              // ScaffoldMessenger.of(context).showSnackBar(
+                              //   SnackBar(
+                              //     content: Text(
+                              //       'Scanned: $scannedData',
+                              //       ),
+                              //   ),
+                              // );
+                              //_toggleFullCamera(); 
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              );
+            } else {
+              return const Center(child: CircularProgressIndicator());
+            }
+          },
+        ),
       ),
     );
   }
@@ -214,15 +263,18 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               GestureDetector(
-                                onTap: (_scannedDataList.length > 2)  ? () {
-                                  _showTopSnackBar(context as BuildContext); 
-                                    } 
-                                      : _toggleFullCamera,
+                                onTap: () {
+                                   if (scannedDataMap[_tabs[0]]!.length > 3) {
+                                      _showTopSnackBar(context); 
+                                    } else {
+                                      _toggleFullCamera();
+                                    }
+                                  },
                                 child: Container(
                                   width: 100,
                                   height: 100,
                                   decoration: BoxDecoration(
-                                    color: (_scannedDataList.length > 2)
+                                    color: (scannedDataMap[_tabs[_tabController.index]]!.length > 3)
                                       ? Colors.grey.withOpacity(0.1)
                                       : Colors.grey.withOpacity(0.4),
                                     shape: BoxShape.circle,
@@ -258,7 +310,8 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
+              SizedBox(
+                width: MediaQuery.of(context).size.width,
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   height: 50,
@@ -282,8 +335,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         SliverList(
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-               List<String> titles = ['CLI', 'Car Details', 'Personal Details'];
-              if (index < _scannedDataList.length) {
+               String currentTab = _tabs[_tabController.index];
+               List<String>? _scannedDataList = scannedDataMap[currentTab];
+              if (_scannedDataList != null && index < _scannedDataList.length ) {
                 return Container(
                   margin: const EdgeInsets.all(10),
                   padding: const EdgeInsets.all(16),
@@ -301,63 +355,96 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  child: Stack(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            titles[index],
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                  child: Flexible(
+                    child: Stack(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentTab,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 10), 
-                          Text(
-                            _scannedDataList[index],
-                            style: const TextStyle(
-                              fontSize: 18, 
-                              fontWeight: FontWeight.bold,
+                            const SizedBox(height: 10), 
+                            Text(
+                              _scannedDataList[index],
+                              style: const TextStyle(
+                                fontSize: 18, 
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10,),
-                      Positioned(
-                        bottom: 5,
-                        right: 5,
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.amber,
-                          ),
-                          onPressed: (_scannedDataList.length > 2 && index < 2) ? null : () {
-                            if (_scannedDataList.length > 2) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => Billing(scannedData: _scannedDataList,)), 
-                              );
-                            } else {
-                              setState(() {
-                                _toggleFullCamera();
-                              });
-                            }
-                          }, 
-                          child: const Text(
-                            "Continue",
-                            style: TextStyle(color: Colors.white),
+                          ],
+                        ),
+                        const SizedBox(height: 10,),
+                        Positioned(
+                          bottom: 5,
+                          right: 5,
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                            ),
+                            onPressed: () {
+                              int currentTabIndex = _tabController.index;
+                              if (currentTabIndex == _tabs.length - 1) {
+                                Navigator.push(
+                                  context, 
+                                  MaterialPageRoute(
+                                    builder: (context) => Billing(
+                                    scannedData: [_scannedDataList.last],)
+                                  )
+                                );
+                              } else {
+                                if (currentTabIndex != _tabs.length - 1) {
+                                  if(_scannedDataList[index].isEmpty) {
+                                    showTopSnackBar(
+                                      context as OverlayState,
+                                      const CustomSnackBar.info(
+                                        message: "please scan first",
+                                      )
+                                    );
+                                  } else {
+                                    setState(() {
+                                    _tabController.index = currentTabIndex + 1;
+                                  });
+                                  _tabController.animateTo(currentTabIndex + 1);
+                                  }
+                                } 
+                              } 
+                            },
+                            child: const Text(
+                              "Continue",
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 20),
+                        Positioned(
+                          bottom: 5,
+                          left: 5,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber
+                            ),
+                            onPressed: () {
+                              isReplacing = true;
+                              _toggleFullCamera();
+                              },
+                            child: const Text("Replace Current Data"),
+                          ),
+                        )
+                      ],
+                    ),
                   ),
                 );
               } else {
                 return Container();
               }
             },
-            childCount: _scannedDataList.length, 
+            childCount: scannedDataMap[_tabs[_tabController.index]]?.length ?? 0, 
           ),
         ),
       ],

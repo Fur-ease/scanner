@@ -31,7 +31,7 @@ class _BillingState extends State<Billing> {
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {
-                List<String> titles = ['CLI', 'Car Details', 'Personal Details'];
+                List<String> titles = ['Client Details'];
                 return Container(
                   margin: const EdgeInsets.all(10),
                   padding: const EdgeInsets.all(16),
